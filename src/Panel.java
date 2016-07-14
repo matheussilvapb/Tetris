@@ -1,9 +1,6 @@
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Image;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
@@ -17,8 +14,12 @@ public class Panel extends JPanel {
 
 	public final static int BLOCK_SIZE = 24;
 
-	public static int IMG_X;
-	public static int IMG_Y;
+	public static int RESTART_IMG_X;
+	public static int RESTART_IMG_Y;
+
+	private JLabel scoreLabel;
+	private JLabel highScoresLabel;
+	private JLabel actualMode;
 
 	public Panel(Board board, int frameHeight) {
 		super();
@@ -36,8 +37,14 @@ public class Panel extends JPanel {
 			System.out.println(e.getMessage());
 		}
 		this.board = board;
-		IMG_X = BLOCK_SIZE * 11;
-		IMG_Y = frameHeight - BLOCK_SIZE * 5;
+		RESTART_IMG_X = BLOCK_SIZE * 11;
+		RESTART_IMG_Y = frameHeight - BLOCK_SIZE * 5;
+		scoreLabel = new JLabel("Score: ");
+		this.add(scoreLabel);
+		highScoresLabel = new JLabel("Top 5: ");
+		this.add(highScoresLabel);
+		actualMode = new JLabel();
+		this.add(actualMode);
 	}
 
 	private void drawGrid(Graphics g) {
@@ -100,8 +107,14 @@ public class Panel extends JPanel {
 	public void paintComponent(Graphics g) {
 		// Draws block images on the correct positions based on board.matrix()
 		super.paintComponent(g);
+		scoreLabel.setLocation(BLOCK_SIZE * 12, BLOCK_SIZE * 2);
+		scoreLabel.setText("Score: " + board.score());
+		highScoresLabel.setLocation(BLOCK_SIZE * 12, BLOCK_SIZE * 8);
+		highScoresLabel.setText(board.topFive());
+		actualMode.setLocation(BLOCK_SIZE * 12, BLOCK_SIZE);
+		actualMode.setText(board.actualMode());
 		drawGrid(g);
-		drawNextBlock(g, board.generateNextPiece());
+		drawNextBlock(g, board.nextPiece());
 		g.drawImage(restartbutton, BLOCK_SIZE * 11, BLOCK_SIZE * 15, 100, 35,
 				this);
 		char[][] matrix = board.matrix(); // See matrix() method in Board

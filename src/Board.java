@@ -1,7 +1,6 @@
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Random;
-
 import javax.swing.*;
 
 public class Board implements ActionListener {
@@ -13,15 +12,32 @@ public class Board implements ActionListener {
 
 	private Block[][] matrix;
 	private Timer timer;
+	private Score score;
+	private char currentPiece;
+	private char[] pieceSequence;
+	private int index, currentJ, currentI;
+	private HighScores highScores;
+	private Serialize<HighScores> serHighScore;
+	private JFrame frame;
+	public boolean pieceStopped = false;
+	public boolean editMode = false;
 
-	char[] pieceSequence;
-	int index;
 
-	int currentJ, currentI;
+	public char[][] matrix() {
+		/*
+		 * Returns a 2D array of chars. It holds the type of block, depending of
+		 * the shape it makes.
+		 */
+		char[][] out = new char[20][10];
+		for (int i = 1; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[0].length; j++) {
+				out[i - 1][j] = matrix[i][j].type();
+			}
+		}
+		return out;
+	}
 
-	char currentPiece;
-
-	public Board() {
+	public Board(HighScores highScores, JFrame frame) {
 		matrix = new Block[21][10];
 		for (int i = 0; i < matrix.length; i++) {
 			for (int j = 0; j < matrix[0].length; j++) {
@@ -41,6 +57,10 @@ public class Board implements ActionListener {
 		currentJ = 0;
 		currentI = 0;
 		currentPiece = '.';
+		score = new Score();
+		this.highScores = highScores;
+		this.serHighScore = new Serialize<HighScores>();
+		this.frame = frame;
 	}
 
 	public void init() {
@@ -48,7 +68,120 @@ public class Board implements ActionListener {
 		index = 0;
 		shuffleSequence();
 		generatePiece();
+		score = new Score();
 	}
+
+	public char nextPiece() {
+		return pieceSequence[index];
+	}
+
+	public void moveLeft() {
+		// Moves the current piece left, if canMoveLeft() returns true
+		if (canMoveLeft()) {
+			for (int i = 0; i < matrix.length; i++) {
+				for (int j = 0; j < matrix[0].length; j++) {
+					moveOneBlock(i, j, false);
+				}
+			}
+			currentJ--;
+		}
+	}
+
+	public void moveRight() {
+		// Moves the current piece right, if canMoveRight() returns true
+		if (canMoveRight()) {
+			for (int i = 0; i < matrix.length; i++) {
+				for (int j = matrix[0].length - 1; j >= 0; j--) {
+					moveOneBlock(i, j, true);
+				}
+			}
+			currentJ++;
+		}
+	}
+
+	public void moveDown() {
+		// Moves the current piece down, if canMoveDown() returns true
+		if (canMoveDown()) {
+			for (int i = matrix.length - 1; i >= 0; i--) {
+				for (int j = 0; j < matrix[0].length; j++) {
+					if (matrix[i][j].moving())
+						moveOneBlockDown(i, j);
+				}
+			}
+			currentI++;
+		}
+	}
+
+	public void hardDrop() {
+		// 'hard drops' the piece
+		while (canMoveDown()) {
+			moveDown();
+		}
+		update();
+	}
+
+	public void rotate() {
+		// If possible, rotates the piece 90 degrees right
+		if (currentPiece == 'O')
+			return;
+
+		int oldJ = currentJ;
+
+		if (currentJ == -1) {
+			moveRight();
+		} else if (currentJ == 8) {
+			if (currentPiece == 'I') {
+				moveTwoLeft();
+			} else {
+				moveLeft();
+			}
+		} else if (currentJ == 7 && currentPiece == 'I') {
+			moveLeft();
+		}
+
+		if (canRotate()) {
+			rotateInMatrix(currentI, currentJ);
+		} else {
+			while (currentJ != oldJ) {
+				if (currentJ > oldJ) {
+					moveLeft();
+				} else if (currentJ < oldJ) {
+					moveRight();
+				}
+			}
+		}
+	}
+
+	public int score() {
+		// Returns the current score
+		return score.score();
+	}
+
+	public String topFive() {
+		// Returns a String using HTML to format it for use in a JLabel
+		return highScores.toStringHtml();
+	}
+
+	public void restartGame() {
+		// Clean all the matrix.
+		for (int i = 0; i < matrix.length; i++) {
+			for (int j = 0; j < matrix[0].length; j++) {
+				matrix[i][j] = new Block(false, false);
+			}
+		}
+		init();
+	}
+
+	public void isEditMode() {
+		if(editMode == false) { this.editMode = true; }
+		else {this.editMode = false; }
+	}
+
+	public String actualMode() {
+		if(editMode) { return "Editing"; }
+		return "Normal";
+	}
+
 
 	private void generatePiece() {
 		/*
@@ -109,10 +242,6 @@ public class Board implements ActionListener {
 		}
 	}
 
-	public char generateNextPiece() {
-		return pieceSequence[index];
-	}
-
 	private void shuffleSequence() {
 		// Uses Random() to shuffle the array pieceSequence.
 		Random rnd = new Random();
@@ -122,43 +251,6 @@ public class Board implements ActionListener {
 			char tmp = pieceSequence[index];
 			pieceSequence[index] = pieceSequence[i];
 			pieceSequence[i] = tmp;
-		}
-	}
-
-	public void moveLeft() {
-		// Moves the current piece left, if canMoveLeft() returns true
-		if (canMoveLeft()) {
-			for (int i = 0; i < matrix.length; i++) {
-				for (int j = 0; j < matrix[0].length; j++) {
-					moveOneBlock(i, j, false);
-				}
-			}
-			currentJ--;
-		}
-	}
-
-	public void moveRight() {
-		// Moves the current piece right, if canMoveRight() returns true
-		if (canMoveRight()) {
-			for (int i = 0; i < matrix.length; i++) {
-				for (int j = matrix[0].length - 1; j >= 0; j--) {
-					moveOneBlock(i, j, true);
-				}
-			}
-			currentJ++;
-		}
-	}
-
-	public void moveDown() {
-		// Moves the current piece down, if canMoveDown() returns true
-		if (canMoveDown()) {
-			for (int i = matrix.length - 1; i >= 0; i--) {
-				for (int j = 0; j < matrix[0].length; j++) {
-					if (matrix[i][j].moving())
-						moveOneBlockDown(i, j);
-				}
-			}
-			currentI++;
 		}
 	}
 
@@ -177,14 +269,6 @@ public class Board implements ActionListener {
 		// Moves down the block at i j position.
 		matrix[i + 1][j] = matrix[i][j];
 		matrix[i][j] = new Block(false, false);
-	}
-
-	public void hardDrop() {
-		// 'hard drops' the piece
-		while (canMoveDown()) {
-			moveDown();
-		}
-		update();
 	}
 
 	private boolean canMoveRight() {
@@ -269,20 +353,6 @@ public class Board implements ActionListener {
 		return piece;
 	}
 
-	private void putPiece(Block[][] piece) {
-		// Puts 'piece' back into the matrix, in the current position
-		for (int m = 0; m < piece.length; m++) {
-			for (int n = 0; n < piece.length; n++) {
-				matrix[m + currentI][n + currentJ] = piece[m][n];
-			}
-		}
-	}
-
-	private void rotateInMatrix(int i, int j) {
-		// Rotates the piece and puts it back into the matrix
-		putPiece(rotatePiece(getPiece(), currentPiece));
-	}
-
 	private Block[][] rotatePiece(Block[][] piece, char pieceType) {
 		// Returns the moving blocks of piece[][] rotated
 		Block[][] rotated;
@@ -323,38 +393,6 @@ public class Board implements ActionListener {
 		return rotated;
 	}
 
-	public void rotate() {
-		// If possible, rotates the piece 90 degrees right
-		if (currentPiece == 'O')
-			return;
-
-		int oldJ = currentJ;
-
-		if (currentJ == -1) {
-			moveRight();
-		} else if (currentJ == 8) {
-			if (currentPiece == 'I') {
-				moveTwoLeft();
-			} else {
-				moveLeft();
-			}
-		} else if (currentJ == 7 && currentPiece == 'I') {
-			moveLeft();
-		}
-
-		if (canRotate()) {
-			rotateInMatrix(currentI, currentJ);
-		} else {
-			while (currentJ != oldJ) {
-				if (currentJ > oldJ) {
-					moveLeft();
-				} else if (currentJ < oldJ) {
-					moveRight();
-				}
-			}
-		}
-	}
-
 	private boolean canRotate() {
 		// Returns true if the current piece can be rotated
 		Block[][] piece = getPiece();
@@ -371,6 +409,20 @@ public class Board implements ActionListener {
 		return true;
 	}
 
+	private void putPiece(Block[][] piece) {
+		// Puts 'piece' back into the matrix, in the current position
+		for (int m = 0; m < piece.length; m++) {
+			for (int n = 0; n < piece.length; n++) {
+				matrix[m + currentI][n + currentJ] = piece[m][n];
+			}
+		}
+	}
+
+	private void rotateInMatrix(int i, int j) {
+		// Rotates the piece and puts it back into the matrix
+		putPiece(rotatePiece(getPiece(), currentPiece));
+	}
+
 	private void stopAll() {
 		// Stops all blocks
 		for (int i = 0; i < matrix.length; i++) {
@@ -378,6 +430,18 @@ public class Board implements ActionListener {
 				matrix[i][j].stop();
 			}
 		}
+	}
+
+	private boolean gameOver() {
+		// Check if the pieces can still move or they hit the top of the window.
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < matrix[0].length; j++) {
+				if (matrix[i][j].show() && !matrix[i][j].moving()) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private boolean detectFullLine(int i) {
@@ -398,66 +462,48 @@ public class Board implements ActionListener {
 		}
 	}
 
-	private void clearFullLines() {
-		// Detects and clears full lines
+	private int clearFullLines() {
+		// Detects and clears full lines, returns how many lines were cleared
+		int lines = 0;
 		for (int i = 0; i < matrix.length; i++) {
 			if (detectFullLine(i)) {
 				clearLine(i);
+				lines++;
 			}
 		}
-	}
-
-	public char[][] matrix() {
-		/*
-		 * Returns a 2D array of chars. It holds the type of block, depending of
-		 * the shape it makes.
-		 */
-		char[][] out = new char[20][10];
-		for (int i = 1; i < matrix.length; i++) {
-			for (int j = 0; j < matrix[0].length; j++) {
-				out[i - 1][j] = matrix[i][j].type();
-			}
-		}
-		return out;
-	}
-
-	public boolean gameOver() {
-		// Check if the pieces can still move or they hit the top of the window.
-		for (int i = 0; i < 2; i++) {
-			for (int j = 0; j < matrix[0].length; j++) {
-				if (matrix[i][j].show() && !matrix[i][j].moving()) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	public void restartGame() {
-		// Clean all the matrix.
-		for (int i = 0; i < matrix.length; i++) {
-			for (int j = 0; j < matrix[0].length; j++) {
-				matrix[i][j] = new Block(false, false);
-			}
-		}
-		init();
+		return lines;
 	}
 
 	private void update() {
-		if (canMoveDown()) {
-			moveDown();
-		} else {
-			stopAll();
-			clearFullLines();
-			if (!gameOver())
+		if(this.editMode) {
+			if(pieceStopped) {
+				stopAll();
+				pieceStopped = false;
 				generatePiece();
+			}
+		}
+		else if (!gameOver()) {
+			if (canMoveDown()) {
+				moveDown();
+			} else {
+				stopAll();
+				score.addToScore(clearFullLines());
+				if (!gameOver()) {
+					generatePiece();
+				} else {
+					JOptionPane.showMessageDialog(frame, "GAME OVER !\n"
+							+ "Your score was: " + score.score(), "Tetris",
+							JOptionPane.PLAIN_MESSAGE);
+					highScores.addScore(score);
+					serHighScore.save(highScores, "resources/highscores.ser");
+				}
+			}
 		}
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		if (!gameOver())
-			update();
+		update();
 	}
 
 }

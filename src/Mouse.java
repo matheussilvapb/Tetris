@@ -2,6 +2,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
 public class Mouse implements MouseListener {
+
 	private int mouseX, mouseY;
 	private Board board;
 
@@ -14,8 +15,9 @@ public class Mouse implements MouseListener {
 		this.mouseX = event.getX();
 		this.mouseY = event.getY();
 
-		if (mouseX > Panel.IMG_X && mouseX < Panel.IMG_X + 100) {
-			if (mouseY > Panel.IMG_Y && mouseY < Panel.IMG_Y + 35) {
+		if (mouseX > Panel.RESTART_IMG_X && mouseX < Panel.RESTART_IMG_X + 100) {
+			if (mouseY > Panel.RESTART_IMG_Y
+					&& mouseY < Panel.RESTART_IMG_Y + 35) {
 				board.restartGame();
 			}
 		}

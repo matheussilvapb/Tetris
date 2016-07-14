@@ -13,7 +13,16 @@ public class Main {
 		window.setResizable(false);
 		window.setTitle("Tetris");
 
-		Board board = new Board();
+		// loads high scores
+		Serialize<HighScores> ser = new Serialize<HighScores>();
+		HighScores loadedHighScores = ser.load("resources/highscores.ser");
+		if (loadedHighScores == null) {
+			ser.save(new HighScores(), "resources/highscores.ser");
+			loadedHighScores = ser.load("resources/highscores.ser");
+		}
+
+		Board board = new Board(loadedHighScores, window);
+
 		window.addKeyListener(new Keyboard(board));
 		window.addMouseListener(new Mouse(board));
 
@@ -31,7 +40,7 @@ public class Main {
 			try {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				break;
 			}
 		}
 

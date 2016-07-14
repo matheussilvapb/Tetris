@@ -28,10 +28,16 @@ public class Keyboard implements KeyListener {
 		if (event.getKeyCode() == KeyEvent.VK_R) {
 			board.restartGame();
 		}
+
 	}
 
 	public void keyReleased(KeyEvent event) {
-
+		if (event.getKeyCode() == KeyEvent.VK_E) {
+			board.isEditMode();
+		}
+		if (event.getKeyCode() == KeyEvent.VK_S) {
+			board.pieceStopped = true;
+		}
 	}
 
 	public void keyTyped(KeyEvent event) {
